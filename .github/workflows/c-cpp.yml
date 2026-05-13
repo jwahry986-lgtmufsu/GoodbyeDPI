@@ -1,0 +1,129 @@
+Skip to content
+jwahry986-lgtmufsu
+GoodbyeDPI
+Repository navigation
+Code
+Pull requests
+Actions
+Projects
+Wiki
+Security and quality
+Insights
+Settings
+Commit 1ba69e2
+jwahry986-lgtmufsu
+jwahry986-lgtmufsu
+authored
+5 minutes ago
+·
+·
+Verified
+Create build.yaml
+master
+1 parent 
+83bef97
+ commit 
+1ba69e2
+1 file changed
+
++83
+Lines changed: 83 additions & 0 deletions
+File tree
+Filter files…
+.github/workflows
+build.yaml
+Search within code
+ 
+‎.github/workflows/build.yaml‎
++83
+Lines changed: 83 additions & 0 deletions
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,83 @@
+name: Build GoodbyeDPI Windows
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download WinDivert from cache
+      id: cache-windivert
+      uses: actions/cache@v4
+      with:
+        path: WinDivert-2.2.2-A
+        key: windivert-2.2.2
+        
+    - name: Download WinDivert from the website
+      if: steps.cache-windivert.outputs.cache-hit != 'true'
+      run: |
+        curl -L -o WinDivert.zip https://github.com/basil00/Divert/releases/download/v2.2.2/WinDivert-2.2.2-A.zip
+        tar -xf WinDivert.zip
+        
+    - name: Unpack WinDivert
+      run: |
+        if (!(Test-Path WinDivert-2.2.2-A)) {
+          tar -xf WinDivert.zip
+        }
+        
+    - name: Compile x86_64
+      run: |
+        cd src
+        cl.exe /O2 /W3 /D_CRT_SECURE_NO_WARNINGS /DWINVER=0x0600 /D_WIN32_WINNT=0x0600 ^
+          goodbyedpi.c dnsredir.c ttltrack.c utils.c windivert.c blackwhitelist.c service.c ^
+          /link /OUT:goodbyedpi.exe ws2_32.lib wininet.lib iphlpapi.lib kernel32.lib advapi32.lib ^
+          /LIBPATH:..\WinDivert-2.2.2-A\x64 WinDivert.lib
+      shell: cmd
+      
+    - name: Prepare x86_64 directory
+      run: |
+        mkdir x86_64
+        copy src\goodbyedpi.exe x86_64\
+        copy WinDivert-2.2.2-A\x64\WinDivert64.sys x86_64\
+        copy WinDivert-2.2.2-A\x64\WinDivert.dll x86_64\
+        if (Test-Path *.cmd) { copy *.cmd x86_64\ }
+        if (Test-Path *.bat) { copy *.bat x86_64\ }
+      shell: powershell
+      
+    - name: Upload output file x86_64
+      uses: actions/upload-artifact@v4
+      with:
+        name: goodbyedpi-x86_64
+        path: x86_64/
+        
+    - name: Compile i686
+      run: |
+        cd src
+        cl.exe /O2 /W3 /D_CRT_SECURE_NO_WARNINGS /DWINVER=0x0600 /D_WIN32_WINNT=0x0600 ^
+          goodbyedpi.c dnsredir.c ttltrack.c utils.c windivert.c blackwhitelist.c service.c ^
+          /link /OUT:goodbyedpi.exe ws2_32.lib wininet.lib iphlpapi.lib kernel32.lib advapi32.lib ^
+          /LIBPATH:..\WinDivert-2.2.2-A\x86 WinDivert.lib
+      shell: cmd
+      
+    - name: Prepare x86 directory
+      run: |
+        mkdir x86
+        copy src\goodbyedpi.exe x86\
+        copy WinDivert-2.2.2-A\x86\WinDivert32.sys x86\
+        copy WinDivert-2.2.2-A\x86\WinDivert.dll x86\
+        if (Test-Path *.cmd) { copy *.cmd x86\ }
+        if (Test-Path *.bat) { copy *.bat x86\ }
+      shell: powershell
+      
+    - name: Upload output file x86
+      uses: actions/upload-artifact@v4
+      with:
+        name: goodbyedpi-x86
+        path: x86/
+0 commit comments
+Comments
+0
+ (0)
+Comment
+You're not receiving notifications from this thread.
+
