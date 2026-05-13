@@ -1,0 +1,56 @@
+name: Build GoodbyeDPI Windows
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup MinGW
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          mingw-w64-x86_64-gcc
+          make
+    
+    - name: Build GoodbyeDPI
+      shell: msys2 {0}
+      run: |
+        cd src
+        gcc -O2 -std=c99 -Wall -Wextra \
+          goodbyedpi.c \
+          dnsredir.c \
+          ttltrack.c \
+          utils.c \
+          windivert.c \
+          blackwhitelist.c \
+          service.c \
+          -o goodbyedpi.exe \
+          -lws2_32 -lwininet -liphlpapi -lkernel32 -ladvapi32
+        
+    - name: Copy required files
+      shell: msys2 {0}
+      run: |
+        mkdir -p release
+        cp src/goodbyedpi.exe release/
+        cp -r WinDivert release/
+        cp *.cmd release/ 2>/dev/null || true
+        cp *.bat release/ 2>/dev/null || true
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GoodbyeDPI-Windows-x64
+        path: release/
+        retention-days: 30
